@@ -1,0 +1,42 @@
+provider "aws" {
+  region = "us-west-2"
+}
+
+module "vpc" {
+  source = "./modules/vpc"
+}
+
+module "alb-sg" {
+  source = "./modules/alb-sg"
+}
+module "EC2-sg" {
+  source = "./modules/ec2-sg"
+}
+
+
+module "alb" {
+  source          = "./modules/alb"
+  security_groups = module.alb_sg.ALB_cloud_clan_sg
+  subnets         = [module.vpc.public_subnets]
+
+}
+
+module "launch_template" {
+  source          = "./modules/launch_template"
+
+}
+
+module "autoscaling" {
+  source              = "./modules/asg"
+  launch_template {
+    id = module.launch_template.launch_template
+    version = "$Latest"
+  }
+  target_group_arns   = module.alb.alb_target_group_arn
+  max_size            = 3
+  min_size            = 1
+  desired_capacity    = 1
+  vpc_zone_identifier = [module.vpc.private_subnets]
+  
+  
+}
